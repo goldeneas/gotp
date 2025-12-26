@@ -14,5 +14,5 @@ func Send(status string, body string, headers map[string]string, conn net.Conn) 
 	}
 
 	fmt.Fprintf(conn, "\r\n")
-	fmt.Fprintf(conn, body)
+	fmt.Fprintf(conn, "%s", body)
 }
