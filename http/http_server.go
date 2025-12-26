@@ -2,7 +2,9 @@ package http
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"time"
@@ -91,7 +93,14 @@ func (h *HttpServer) connectionHandler(conn net.Conn) {
 		conn.SetReadDeadline(deadline)
 
 		lines, err := readLines(reader)
-		if !handleError(err) {
+		if !handleError(err, conn) {
+			break
+		}
+
+		// this can happen if the client closes the connection
+		// while waiting for an answer (e.g. timeout reached)
+		// a client sends '\r\n' which triggers our parsing to stop immediately
+		if len(lines) == 0 {
 			break
 		}
 
@@ -100,7 +109,7 @@ func (h *HttpServer) connectionHandler(conn net.Conn) {
 		headers := extractHeaders(lines)
 
 		content, err := readContent(headers, reader)
-		if !handleError(err) {
+		if !handleError(err, conn) {
 			break
 		}
 
@@ -110,15 +119,27 @@ func (h *HttpServer) connectionHandler(conn net.Conn) {
 	log.Printf("closing connection with %s", address)
 }
 
-func handleError(err error) bool {
+func handleError(err error, conn net.Conn) bool {
 	if err == nil {
 		return true
 	}
 
-	// if we hit a timeout, it's not something we really want to log
-	if _, isTimeout := err.(net.Error); !isTimeout {
-		log.Printf("error while handling communication: %s", err)
+	address := conn.RemoteAddr().String()
+
+	// we hit a timeout, disconnect
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		log.Printf("hit a timeout for %s: disconnecting", address)
+		return false
 	}
 
+	// the client wants to disconnect
+	if err == io.EOF {
+		log.Printf("client at %s sent eof: disconnecting", address)
+		return false
+	}
+
+	// general error, disconnect
+	log.Printf("error while handling communication: %s", err)
 	return false
 }

@@ -11,6 +11,7 @@ func readLines(reader *bufio.Reader) ([]string, error) {
 
 	for {
 		line, err := reader.ReadString('\n')
+
 		if err != nil {
 			return nil, err
 		}
