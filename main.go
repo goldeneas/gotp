@@ -16,6 +16,7 @@ func main() {
 	)
 
 	server.Listen(25565)
+	defer server.Close()
 
 	for {
 		server.Accept()
