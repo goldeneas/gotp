@@ -105,7 +105,9 @@ func (h *HttpServer) connectionHandler(conn net.Conn) {
 		}
 	}
 
-	log.Printf("closing connection with %s", address)
+	if h.config.logs {
+		log.Printf("closing connection with %s", address)
+	}
 }
 
 func (h *HttpServer) readRequest(reader *bufio.Reader) (*HttpRequest, error) {
