@@ -3,10 +3,11 @@ package http
 import (
 	"fmt"
 	"log"
+	"net"
 	"strings"
 )
 
-type HttpHandler func(verb string, headers map[string]string, content string)
+type HttpHandler func(verb string, headers map[string]string, content string, conn net.Conn)
 
 type HttpRouter struct {
 	handlers map[string]HttpHandler
@@ -23,7 +24,8 @@ func (h *HttpRouter) Add(verb string, path string, handler HttpHandler) {
 	h.handlers[key] = handler
 }
 
-func (h *HttpRouter) Call(verb string, path string, headers map[string]string, content string) {
+func (h *HttpRouter) Call(verb string, path string, headers map[string]string, content string,
+	conn net.Conn) {
 	key := makeKey(verb, path)
 	handler, exists := h.handlers[key]
 	if !exists {
@@ -31,7 +33,7 @@ func (h *HttpRouter) Call(verb string, path string, headers map[string]string, c
 		return
 	}
 
-	handler(verb, headers, content)
+	handler(verb, headers, content, conn)
 }
 
 func (h *HttpRouter) Remove(verb string, path string) {

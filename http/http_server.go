@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"time"
 )
 
 type config struct {
@@ -83,17 +84,41 @@ func (h *HttpServer) Close() error {
 func (h *HttpServer) connectionHandler(conn net.Conn) {
 	defer conn.Close()
 	reader := bufio.NewReader(conn)
-	lines := extractLines(reader)
+	address := conn.RemoteAddr().String()
 
-	verb := extractVerb(lines)
-	path := extractPath(lines)
-	headers := extractHeaders(lines)
+	for {
+		deadline := time.Now().Add(5 * time.Second)
+		conn.SetReadDeadline(deadline)
 
-	content, err := readContent(headers, reader)
-	if err != nil {
-		log.Printf("error while extracting content: %s", err)
-		return
+		lines, err := readLines(reader)
+		if !handleError(err) {
+			break
+		}
+
+		verb := extractVerb(lines)
+		path := extractPath(lines)
+		headers := extractHeaders(lines)
+
+		content, err := readContent(headers, reader)
+		if !handleError(err) {
+			break
+		}
+
+		h.router.Call(verb, path, headers, content, conn)
 	}
 
-	h.router.Call(verb, path, headers, content)
+	log.Printf("closing connection with %s", address)
+}
+
+func handleError(err error) bool {
+	if err == nil {
+		return true
+	}
+
+	// if we hit a timeout, it's not something we really want to log
+	if _, isTimeout := err.(net.Error); !isTimeout {
+		log.Printf("error while handling communication: %s", err)
+	}
+
+	return false
 }

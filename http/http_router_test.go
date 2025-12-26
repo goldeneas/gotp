@@ -1,6 +1,9 @@
 package http
 
-import "testing"
+import (
+	"net"
+	"testing"
+)
 
 func TestHttpRouter(t *testing.T) {
 	router := NewHttpRouter()
@@ -8,7 +11,7 @@ func TestHttpRouter(t *testing.T) {
 	verb := "GET"
 
 	called := false
-	handler := func(v string, h map[string]string, c string) {
+	handler := func(v string, h map[string]string, c string, conn net.Conn) {
 		called = true
 	}
 
@@ -21,7 +24,7 @@ func TestHttpRouter(t *testing.T) {
 	}
 
 	// Test Execution
-	router.Call(verb, path, nil, "")
+	router.Call(verb, path, nil, "", nil)
 	if !called {
 		t.Error("Handler was not executed")
 	}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"net"
 
 	"github.com/goldeneas/gotp/http"
 )
@@ -9,6 +10,7 @@ import (
 func main() {
 	router := http.NewHttpRouter()
 	router.Add("get", "/", messageHandler)
+	router.Add("post", "/", messageHandler)
 
 	server := http.NewServer(
 		router,
@@ -23,6 +25,6 @@ func main() {
 	}
 }
 
-func messageHandler(verb string, headers map[string]string, content string) {
+func messageHandler(verb string, headers map[string]string, content string, conn net.Conn) {
 	log.Printf("got %s, %s", verb, content)
 }

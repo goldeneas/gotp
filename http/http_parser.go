@@ -2,19 +2,17 @@ package http
 
 import (
 	"bufio"
-	"log"
 	"strconv"
 	"strings"
 )
 
-func extractLines(reader *bufio.Reader) []string {
+func readLines(reader *bufio.Reader) ([]string, error) {
 	var lines []string
 
 	for {
 		line, err := reader.ReadString('\n')
 		if err != nil {
-			log.Printf("error while reading: %s", err)
-			break
+			return nil, err
 		}
 
 		if line == "\r\n" {
@@ -24,7 +22,7 @@ func extractLines(reader *bufio.Reader) []string {
 		lines = append(lines, line)
 	}
 
-	return lines
+	return lines, nil
 }
 
 func extractVerb(lines []string) string {
@@ -60,7 +58,6 @@ func readContent(headers map[string]string, reader *bufio.Reader) (string, error
 	contentLength, err := strconv.Atoi(lengthStr)
 
 	if err != nil {
-		log.Printf("could not convert string '%s' to int", lengthStr)
 		return "", err
 	}
 
@@ -69,7 +66,6 @@ func readContent(headers map[string]string, reader *bufio.Reader) (string, error
 	for range contentLength {
 		byte, err := reader.ReadByte()
 		if err != nil {
-			log.Printf("could not read byte: %s", err)
 			return "", err
 		}
 

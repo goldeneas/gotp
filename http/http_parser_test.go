@@ -15,8 +15,8 @@ func TestExtractFunctions(t *testing.T) {
 
 	reader := bufio.NewReader(strings.NewReader(rawInput))
 
-	lines := extractLines(reader)
-	if len(lines) != 3 {
+	lines, err := readLines(reader)
+	if err != nil || len(lines) != 3 {
 		t.Fatalf("Expected 3 header lines, got %d", len(lines))
 	}
 
