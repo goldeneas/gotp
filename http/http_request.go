@@ -6,3 +6,7 @@ type HttpRequest struct {
 	headers map[string]string
 	content string
 }
+
+func (h *HttpRequest) IsConnectionClose() bool {
+	return h.headers["Connection"] == "close"
+}

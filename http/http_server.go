@@ -99,6 +99,10 @@ func (h *HttpServer) connectionHandler(conn net.Conn) {
 		}
 
 		h.router.Call(request, conn)
+
+		if request.IsConnectionClose() {
+			break
+		}
 	}
 
 	log.Printf("closing connection with %s", address)
