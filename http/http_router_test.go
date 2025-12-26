@@ -24,7 +24,14 @@ func TestHttpRouter(t *testing.T) {
 	}
 
 	// Test Execution
-	router.Call(verb, path, nil, "", nil)
+	request := &HttpRequest{
+		verb:    verb,
+		path:    path,
+		content: "",
+		headers: nil,
+	}
+
+	router.Call(request, nil)
 	if !called {
 		t.Error("Handler was not executed")
 	}

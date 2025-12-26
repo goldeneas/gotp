@@ -92,54 +92,54 @@ func (h *HttpServer) connectionHandler(conn net.Conn) {
 		deadline := time.Now().Add(5 * time.Second)
 		conn.SetReadDeadline(deadline)
 
-		lines, err := readLines(reader)
-		if !handleError(err, conn) {
+		request, err := h.readRequest(reader)
+		if err != nil {
+			logError(address, err)
 			break
 		}
 
-		// this can happen if the client closes the connection
-		// while waiting for an answer (e.g. timeout reached)
-		// a client sends '\r\n' which triggers our parsing to stop immediately
-		if len(lines) == 0 {
-			break
-		}
-
-		verb := extractVerb(lines)
-		path := extractPath(lines)
-		headers := extractHeaders(lines)
-
-		content, err := readContent(headers, reader)
-		if !handleError(err, conn) {
-			break
-		}
-
-		h.router.Call(verb, path, headers, content, conn)
+		h.router.Call(request, conn)
 	}
 
 	log.Printf("closing connection with %s", address)
 }
 
-func handleError(err error, conn net.Conn) bool {
-	if err == nil {
-		return true
+func (h *HttpServer) readRequest(reader *bufio.Reader) (*HttpRequest, error) {
+	lines, err := readLines(reader)
+	if err != nil {
+		return nil, err
 	}
 
-	address := conn.RemoteAddr().String()
+	if len(lines) == 0 {
+		return nil, io.EOF
+	}
 
-	// we hit a timeout, disconnect
+	headers := extractHeaders(lines)
+	content, err := readContent(headers, reader)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &HttpRequest{
+		verb:    extractVerb(lines),
+		path:    extractPath(lines),
+		headers: headers,
+		content: content,
+	}, nil
+}
+
+func logError(address string, err error) {
 	var netErr net.Error
 	if errors.As(err, &netErr) && netErr.Timeout() {
 		log.Printf("hit a timeout for %s: disconnecting", address)
-		return false
+		return
 	}
 
-	// the client wants to disconnect
-	if err == io.EOF {
+	if errors.Is(err, io.EOF) {
 		log.Printf("client at %s sent eof: disconnecting", address)
-		return false
+		return
 	}
 
-	// general error, disconnect
-	log.Printf("error while handling communication: %s", err)
-	return false
+	log.Printf("error while handling communication with %s: %s", address, err)
 }

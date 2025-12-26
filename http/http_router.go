@@ -24,16 +24,15 @@ func (h *HttpRouter) Add(verb string, path string, handler HttpHandler) {
 	h.handlers[key] = handler
 }
 
-func (h *HttpRouter) Call(verb string, path string, headers map[string]string, content string,
-	conn net.Conn) {
-	key := makeKey(verb, path)
+func (h *HttpRouter) Call(request *HttpRequest, conn net.Conn) {
+	key := makeKey(request.verb, request.path)
 	handler, exists := h.handlers[key]
 	if !exists {
-		log.Printf("404 Not Found: '%s %s'\n", verb, path)
+		log.Printf("404 Not Found: '%s %s'\n", request.verb, request.path)
 		return
 	}
 
-	handler(verb, headers, content, conn)
+	handler(request.verb, request.headers, request.content, conn)
 }
 
 func (h *HttpRouter) Remove(verb string, path string) {
