@@ -127,9 +127,12 @@ func (h *HttpServer) readRequest(reader *bufio.Reader) (*HttpRequest, error) {
 		return nil, err
 	}
 
+	path, queries := extractPathAndQueries(lines)
+
 	return &HttpRequest{
 		verb:    extractVerb(lines),
-		path:    extractPath(lines),
+		path:    path,
+		queries: queries,
 		headers: headers,
 		content: content,
 	}, nil

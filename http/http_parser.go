@@ -30,8 +30,33 @@ func extractVerb(lines []string) string {
 	return strings.Split(lines[0], " ")[0]
 }
 
-func extractPath(lines []string) string {
-	return strings.Split(lines[0], " ")[1]
+func extractPathAndQueries(lines []string) (string, map[string]string) {
+	fullPath := strings.Split(lines[0], " ")[1]
+
+	parts := strings.SplitN(fullPath, "?", 2)
+	path := parts[0]
+
+	if len(parts) == 1 {
+		return path, nil
+	}
+
+	queries := make(map[string]string)
+	queryPairs := strings.Split(parts[1], "&")
+	for _, pair := range queryPairs {
+		queryParts := strings.SplitN(pair, "=", 2)
+		key := queryParts[0]
+
+		value := ""
+
+		// some queries may not have a value set
+		if len(queryParts) == 2 {
+			value = queryParts[1]
+		}
+
+		queries[key] = value
+	}
+
+	return path, queries
 }
 
 func extractHeaders(lines []string) map[string]string {

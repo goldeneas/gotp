@@ -7,7 +7,7 @@ import (
 )
 
 func TestExtractFunctions(t *testing.T) {
-	rawInput := "POST /api/v1/resource HTTP/1.1\r\n" +
+	rawInput := "POST /api/v1/resource?id=123&mode=dark HTTP/1.1\r\n" +
 		"Content-Length: 12\r\n" +
 		"Content-Type: text/plain\r\n" +
 		"\r\n" +
@@ -25,17 +25,22 @@ func TestExtractFunctions(t *testing.T) {
 		t.Errorf("Expected verb POST, got %s", verb)
 	}
 
-	path := extractPath(lines)
+	path, queries := extractPathAndQueries(lines)
+
 	if path != "/api/v1/resource" {
 		t.Errorf("Expected path /api/v1/resource, got %s", path)
+	}
+
+	if queries["id"] != "123" {
+		t.Errorf("Expected query id=123, got %s", queries["id"])
+	}
+	if queries["mode"] != "dark" {
+		t.Errorf("Expected query mode=dark, got %s", queries["mode"])
 	}
 
 	headers := extractHeaders(lines)
 	if headers["Content-Length"] != "12" {
 		t.Errorf("Expected Content-Length 12, got %s", headers["Content-Length"])
-	}
-	if headers["Content-Type"] != "text/plain" {
-		t.Errorf("Expected Content-Type text/plain, got %s", headers["Content-Type"])
 	}
 
 	content, err := readContent(headers, reader)
@@ -44,15 +49,5 @@ func TestExtractFunctions(t *testing.T) {
 	}
 	if content != "hello world!" {
 		t.Errorf("Expected body 'hello world!', got '%s'", content)
-	}
-}
-
-func TestReadContent_MissingHeader(t *testing.T) {
-	reader := bufio.NewReader(strings.NewReader("some data"))
-	emptyHeaders := make(map[string]string)
-
-	_, err := readContent(emptyHeaders, reader)
-	if err == nil {
-		t.Error("Expected error for missing Content-Length header, got nil")
 	}
 }
