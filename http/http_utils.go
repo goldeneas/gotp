@@ -5,8 +5,10 @@ import (
 	"net"
 )
 
+const HTTP_VERSION = "1.1"
+
 func Send(status string, body string, headers map[string]string, conn net.Conn) {
-	fmt.Fprintf(conn, "HTTP/1.1 %s\r\n", status)
+	fmt.Fprintf(conn, "HTTP/%s %s\r\n", HTTP_VERSION, status)
 	fmt.Fprintf(conn, "Content-Length: %d\r\n", len(body))
 
 	for key, value := range headers {

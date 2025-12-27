@@ -25,7 +25,7 @@ func main() {
 	}
 }
 
-func messageHandler(verb string, headers map[string]string, content string, conn net.Conn) {
-	log.Printf("got %s, %s", verb, content)
+func messageHandler(req *http.HTTPRequest, conn net.Conn) {
+	log.Printf("got %s, %s", req.Verb(), req.Content())
 	http.Send("200", "Welcome!", nil, conn)
 }

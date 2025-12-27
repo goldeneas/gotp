@@ -11,7 +11,7 @@ func TestHttpRouter(t *testing.T) {
 	verb := "GET"
 
 	called := false
-	handler := func(v string, h map[string]string, c string, conn net.Conn) {
+	handler := func(req *HTTPRequest, conn net.Conn) {
 		called = true
 	}
 
@@ -24,7 +24,7 @@ func TestHttpRouter(t *testing.T) {
 	}
 
 	// Test Execution
-	request := &HttpRequest{
+	request := &HTTPRequest{
 		verb:    verb,
 		path:    path,
 		content: "",

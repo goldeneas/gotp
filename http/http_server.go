@@ -110,7 +110,7 @@ func (h *HttpServer) connectionHandler(conn net.Conn) {
 	}
 }
 
-func (h *HttpServer) readRequest(reader *bufio.Reader) (*HttpRequest, error) {
+func (h *HttpServer) readRequest(reader *bufio.Reader) (*HTTPRequest, error) {
 	lines, err := readLines(reader)
 	if err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func (h *HttpServer) readRequest(reader *bufio.Reader) (*HttpRequest, error) {
 
 	path, queries := extractPathAndQueries(lines)
 
-	return &HttpRequest{
+	return &HTTPRequest{
 		verb:    extractVerb(lines),
 		path:    path,
 		queries: queries,
