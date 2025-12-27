@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 )
@@ -67,10 +68,6 @@ func NewServer(router *HttpRouter, opts ...ConfigFn) *HttpServer {
 }
 
 func (h *HttpServer) Listen(port int) error {
-	if h.listener != nil {
-		h.listener.Close()
-	}
-
 	address := fmt.Sprintf(":%d", port)
 	listener, err := net.Listen("tcp", address)
 
@@ -80,8 +77,12 @@ func (h *HttpServer) Listen(port int) error {
 
 	h.listener = listener
 
+	servePath := h.config.servePath
+	go h.fileServer.WatchDir(servePath)
+
 	if h.config.logs {
 		log.Printf("server listening on address '%s'", address)
+		log.Printf("server watching dir '%s'", servePath)
 	}
 
 	return nil
@@ -120,8 +121,7 @@ func (h *HttpServer) connectionHandler(conn net.Conn) {
 			break
 		}
 
-		servePath := h.config.servePath
-		file, err := h.readFile(servePath, request.Path())
+		file, err := h.readFile(request.Path())
 		if err != nil {
 			logFileError(address, err)
 		}
@@ -142,9 +142,10 @@ func (h *HttpServer) connectionHandler(conn net.Conn) {
 	}
 }
 
-func (h *HttpServer) readFile(prefix string, path string) ([]byte, error) {
+func (h *HttpServer) readFile(path string) ([]byte, error) {
 	servePath := h.config.servePath
-	return h.fileServer.Get(servePath, path)
+	fullPath := filepath.Join(servePath, path)
+	return h.fileServer.Get(fullPath)
 }
 
 func (h *HttpServer) readRequest(address string, reader *bufio.Reader) (*HTTPRequest, error) {
