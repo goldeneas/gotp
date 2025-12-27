@@ -41,8 +41,8 @@ func extractPathAndQueries(lines []string) (string, map[string]string) {
 	}
 
 	queries := make(map[string]string)
-	queryPairs := strings.Split(parts[1], "&")
-	for _, pair := range queryPairs {
+	queryPairs := strings.SplitSeq(parts[1], "&")
+	for pair := range queryPairs {
 		queryParts := strings.SplitN(pair, "=", 2)
 		key := queryParts[0]
 

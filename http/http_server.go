@@ -7,18 +7,25 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
+	"strconv"
 	"time"
 )
 
+const KEEPALIVE_TIMEOUT = 5 * time.Second
+
 type config struct {
-	logs bool
+	logs         bool
+	serveEnabled bool
+	servePath    string
 }
 
 type HttpServer struct {
-	port     int
-	config   config
-	listener net.Listener
-	router   *HttpRouter
+	port       int
+	config     config
+	listener   net.Listener
+	router     *HttpRouter
+	fileServer *HttpFileServer
 }
 
 type ConfigFn func(c *config)
@@ -29,9 +36,23 @@ func SetEnableLogs(enable bool) ConfigFn {
 	}
 }
 
+func SetServeEnabled(enable bool) ConfigFn {
+	return func(c *config) {
+		c.serveEnabled = enable
+	}
+}
+
+func SetServePath(path string) ConfigFn {
+	return func(c *config) {
+		c.servePath = path
+	}
+}
+
 func NewServer(router *HttpRouter, opts ...ConfigFn) *HttpServer {
 	config := config{
-		logs: false,
+		logs:         false,
+		serveEnabled: false,
+		servePath:    "static/",
 	}
 
 	for _, f := range opts {
@@ -39,8 +60,9 @@ func NewServer(router *HttpRouter, opts ...ConfigFn) *HttpServer {
 	}
 
 	return &HttpServer{
-		config: config,
-		router: router,
+		config:     config,
+		router:     router,
+		fileServer: NewHttpFileServer(),
 	}
 }
 
@@ -89,16 +111,26 @@ func (h *HttpServer) connectionHandler(conn net.Conn) {
 	address := conn.RemoteAddr().String()
 
 	for {
-		deadline := time.Now().Add(5 * time.Second)
+		deadline := time.Now().Add(KEEPALIVE_TIMEOUT)
 		conn.SetReadDeadline(deadline)
 
-		request, err := h.readRequest(reader)
+		request, err := h.readRequest(address, reader)
 		if err != nil {
-			logError(address, err)
+			logRequestError(address, err)
 			break
 		}
 
-		h.router.Call(request, conn)
+		servePath := h.config.servePath
+		file, err := h.readFile(servePath, request.Path())
+		if err != nil {
+			logFileError(address, err)
+		}
+
+		if file != nil {
+			Serve(file, "text/html", conn)
+		} else {
+			h.router.Call(request, conn)
+		}
 
 		if request.IsConnectionClose() {
 			break
@@ -110,7 +142,12 @@ func (h *HttpServer) connectionHandler(conn net.Conn) {
 	}
 }
 
-func (h *HttpServer) readRequest(reader *bufio.Reader) (*HTTPRequest, error) {
+func (h *HttpServer) readFile(prefix string, path string) ([]byte, error) {
+	servePath := h.config.servePath
+	return h.fileServer.Get(servePath, path)
+}
+
+func (h *HttpServer) readRequest(address string, reader *bufio.Reader) (*HTTPRequest, error) {
 	lines, err := readLines(reader)
 	if err != nil {
 		return nil, err
@@ -122,9 +159,8 @@ func (h *HttpServer) readRequest(reader *bufio.Reader) (*HTTPRequest, error) {
 
 	headers := extractHeaders(lines)
 	content, err := readContent(headers, reader)
-
 	if err != nil {
-		return nil, err
+		logContentError(address, err)
 	}
 
 	path, queries := extractPathAndQueries(lines)
@@ -138,7 +174,7 @@ func (h *HttpServer) readRequest(reader *bufio.Reader) (*HTTPRequest, error) {
 	}, nil
 }
 
-func logError(address string, err error) {
+func logRequestError(address string, err error) {
 	var netErr net.Error
 	if errors.As(err, &netErr) && netErr.Timeout() {
 		log.Printf("hit a timeout for %s: disconnecting", address)
@@ -151,4 +187,20 @@ func logError(address string, err error) {
 	}
 
 	log.Printf("error while handling communication with %s: %s", address, err)
+}
+
+func logFileError(address string, err error) {
+	if errors.Is(err, os.ErrNotExist) {
+		return
+	}
+
+	log.Printf("error while handling static file serving with %s: %s", address, err)
+}
+
+func logContentError(address string, err error) {
+	if errors.Is(err, strconv.ErrSyntax) {
+		return
+	}
+
+	log.Printf("error while handling incoming content from %s: %s", address, err)
 }
