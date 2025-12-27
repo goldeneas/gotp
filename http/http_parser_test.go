@@ -51,3 +51,17 @@ func TestExtractFunctions(t *testing.T) {
 		t.Errorf("Expected body 'hello world!', got '%s'", content)
 	}
 }
+
+func TestParserEdgeCases(t *testing.T) {
+	t.Run("Missing Content-Length", func(t *testing.T) {
+		raw := "POST / HTTP/1.1\r\nHost: localhost\r\n\r\nSecretBody"
+		reader := bufio.NewReader(strings.NewReader(raw))
+		lines, _ := readLines(reader)
+		headers := extractHeaders(lines)
+
+		_, err := readContent(headers, reader)
+		if err == nil {
+			t.Error("Expected error when Content-Length is missing for body reading")
+		}
+	})
+}

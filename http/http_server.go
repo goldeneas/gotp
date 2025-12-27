@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -143,9 +144,26 @@ func (h *HttpServer) connectionHandler(conn net.Conn) {
 }
 
 func (h *HttpServer) readFile(path string) ([]byte, error) {
-	servePath := h.config.servePath
-	fullPath := filepath.Join(servePath, path)
-	return h.fileServer.Get(fullPath)
+	basePath := h.config.servePath
+
+	absBase, err := filepath.Abs(basePath)
+	if err != nil {
+		return nil, err
+	}
+
+	fullPath := filepath.Join(absBase, path)
+
+	absTarget, err := filepath.Abs(fullPath)
+	if err != nil {
+		return nil, err
+	}
+
+	prefix := absBase + string(filepath.Separator)
+	if !strings.HasPrefix(absTarget, prefix) && absTarget != absBase {
+		return nil, fmt.Errorf("403 Forbidden: illegal path traversal attempt")
+	}
+
+	return h.fileServer.Get(absTarget)
 }
 
 func (h *HttpServer) readRequest(address string, reader *bufio.Reader) (*HTTPRequest, error) {
