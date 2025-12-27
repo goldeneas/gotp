@@ -7,3 +7,6 @@ gotp is a lightweight, custom HTTP server implementation written in Go. It opera
 * **Custom Parser:** Manually processes HTTP 1.1 request lines, headers, and bodies
 * **Routing:** Supports exact-match routing based on HTTP verbs and paths
 * **Concurrency:** Handles each incoming connection in a separate goroutine
+
+## Screenshots
+![](https://github.com/goldeneas/gotp/blob/main/screenshots/index.png?raw=true)
