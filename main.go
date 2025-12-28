@@ -34,5 +34,5 @@ func main() {
 
 func messageHandler(req *http.HTTPRequest, conn net.Conn) {
 	log.Printf("got %s, %s", req.Verb(), req.Content())
-	http.Send("200", "Welcome!", nil, conn)
+	http.Send("200 OK", "Welcome!", nil, conn)
 }
