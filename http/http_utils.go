@@ -23,6 +23,6 @@ func Serve(file []byte, mime string, conn net.Conn) {
 	content := string(file[:])
 
 	Send("200 OK", content, map[string]string{
-		"Content-Type": fmt.Sprintf("%s", mime),
+		"Content-Type": mime,
 	}, conn)
 }

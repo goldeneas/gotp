@@ -90,6 +90,7 @@ func (h *HttpServer) Listen(port int) error {
 }
 
 func (h *HttpServer) Accept() error {
+
 	conn, err := h.listener.Accept()
 	if err != nil {
 		return err

@@ -17,11 +17,18 @@ func main() {
 		http.SetEnableLogs(true),
 	)
 
-	server.Listen(25565)
+	err := server.Listen(25565)
+	if err != nil {
+		log.Fatalf("error while trying to listen: %s", err)
+	}
+
 	defer server.Close()
 
 	for {
-		server.Accept()
+		err := server.Accept()
+		if err != nil {
+			log.Printf("error while accepting new connection: %s", err)
+		}
 	}
 }
 
